@@ -4,14 +4,15 @@ using UnityEngine;
 
 namespace WeaponSystem
 {
-    public class ProjectileWeapon : DistanceWeapon
+    public class TargetWeapon : DistanceWeapon
     {
         public override void Shot()
         {
             base.Shot();
             Vector3 direction = shotDir;
             Vector3 origin = Model.ShootPoint.position;
-            Projectile projectile = SpawnProjectile(origin);
+            Vector3 position = origin + (shotDir * Data.Range);
+            Projectile projectile = SpawnProjectile(position);
             projectile.Init(this, direction);
         }
         Projectile SpawnProjectile(Vector3 position)

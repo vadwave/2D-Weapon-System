@@ -107,6 +107,12 @@ namespace WeaponSystem
             IDamageable damageableTarget = hit.collider.GetComponent<IDamageable>();
             damageableTarget?.Damage(damage, transform.root.position, hitPosition);
         }
+        public void Damage(Collider2D collision, float distance, Vector2 hitPosition)
+        {
+            float damage = CalculateDistanceDamage(distance);
+            IDamageable damageableTarget = collision.GetComponent<IDamageable>();
+            damageableTarget?.Damage(damage, transform.root.position, hitPosition);
+        }
         public bool CheckIsOtherCollision(RaycastHit2D hit)
         {
             //if (hit.transform.root == transform.root) return false;

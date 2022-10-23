@@ -12,7 +12,7 @@ namespace WeaponSystem
 
         [SerializeField] private AmmoModel model;
 
-        private ProjectileWeapon weapon;
+        private DistanceWeapon weapon;
         private Vector3 moveDir;
 
         // Start is called before the first frame update
@@ -48,13 +48,11 @@ namespace WeaponSystem
                 SelfDamage();
             }
         }
-
         private void SelfDamage()
         {
             Destroy(this.gameObject);
         }
-
-        internal void Init(ProjectileWeapon projectileWeapon, Vector3 direction)
+        internal void Init(DistanceWeapon projectileWeapon, Vector3 direction)
         {
             weapon = projectileWeapon;
             moveDir = direction;
