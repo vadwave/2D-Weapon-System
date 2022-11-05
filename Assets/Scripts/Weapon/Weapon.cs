@@ -1,23 +1,18 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Data;
-using Unity.VisualScripting;
 using UnityEngine;
-using static UnityEditor.Experimental.GraphView.GraphView;
-using UnityEngine.UI;
-using Random = UnityEngine.Random;
 
 namespace WeaponSystem
 {
     public class Weapon : MonoBehaviour
     {
-        public event Action<float, float> OnChangedCapacity;
+        public event Action<float, float, CapacityType> OnChangedCapacity;
         public event Action OnStartReloaded;
         public WeaponModel Model => model;
         public AmmoData Ammo => Origin.Ammo;
         public WeaponData Origin => data.Origin;
         public WeaponRealData Data => data;
+        public LayerMask CollidedMask => collidedMask;
         public bool Attacking => nextAttackTime >= Time.time;
         public bool IsIdling { get; private set; }
         public bool IsAiming { get; private set; }
@@ -28,7 +23,7 @@ namespace WeaponSystem
         public bool InventoryEmpty => InventoryIsEmpty(data.Ammo);
         public bool IsCanAttack => !EmptyMagazine && !Attacking;
         public bool IsCanReload => !isReloading && nextReloadTime < Time.time;
-        public float CurrentRounds { get => currentRounds; protected set { currentRounds = value; OnChangedCapacity?.Invoke(currentRounds, data.Capacity); } }
+        public float CurrentRounds { get => currentRounds; protected set { currentRounds = value; OnChangedCapacity?.Invoke(currentRounds, data.Capacity, data.Origin.CapacityType); } }
 
         [SerializeField] protected WeaponData weaponData;
 

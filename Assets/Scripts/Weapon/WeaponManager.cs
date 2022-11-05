@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -33,9 +31,14 @@ namespace WeaponSystem
                 Trigger(false, true);
             }
         }
-        void ChangeCapacity(float current, float max)
+        void ChangeCapacity(float current, float max, CapacityType type)
         {
-            text.text = $"{current}/{max}";
+            switch (type) 
+            {
+                case CapacityType.Numeric: text.text = $"{current}/{max}"; break;
+                case CapacityType.Percent: text.text = $"{(float)System.Math.Round((current/max) * 100, 2)}%"; break;
+                default: text.text = $"{current}"; break;
+            }
         }
         void StartReloaded()
         {
@@ -45,7 +48,10 @@ namespace WeaponSystem
         void Trigger(bool isTrigger, bool isHold)
         {
             foreach (Weapon weapon in weapons)
-                weapon.Trigger(isTrigger, isHold);
+            {
+                if(weapon.enabled && weapon.gameObject.activeInHierarchy)
+                    weapon.Trigger(isTrigger, isHold);
+            }
         }
         void Rotate()
         {

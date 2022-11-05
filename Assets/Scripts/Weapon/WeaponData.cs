@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.SocialPlatforms;
 
 namespace WeaponSystem
 {
@@ -11,6 +10,11 @@ namespace WeaponSystem
         HitScan,
         Melee,
         Target,
+    }
+    public enum CapacityType
+    {
+        Numeric,
+        Percent,
     }
     public enum FireMode
     {
@@ -154,6 +158,7 @@ namespace WeaponSystem
 
         [Header("Capacity")]
         [SerializeField] private AmmoData ammo;
+        [SerializeField] private CapacityType capacityType;
         [SerializeField] private float capacity;
         [SerializeField] private float consume;
         [Header("Reload")]
@@ -182,6 +187,7 @@ namespace WeaponSystem
         public float HipAccuracy { get => hipAccuracy; set => hipAccuracy = value; }
         public float AimAccuracy { get => aimAccuracy; set => aimAccuracy = value; }
         public AmmoData Ammo { get => ammo; set => ammo = value; }
+        public CapacityType CapacityType { get => capacityType; set => capacityType = value; }
         public float Capacity { get => capacity; set => capacity = value; }
         public float Consume { get => consume; set => consume = value; }
         public ReloadMode ReloadMode { get => reloadMode; set => reloadMode = value; }

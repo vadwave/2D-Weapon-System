@@ -1,6 +1,5 @@
 using System.Collections;
 using UnityEngine;
-using static UnityEngine.UI.Image;
 using Random = UnityEngine.Random;
 
 namespace WeaponSystem
@@ -139,21 +138,39 @@ namespace WeaponSystem
         {
             if (Mathf.Abs(currentAccuracy - 1) < Mathf.Epsilon)
             {
-                return this.transform.right;
+                return Model.ShootPoint.right;
             }
             else
             {
                 Vector2 randomPointInScreen = new Vector2(Random.Range(-1.0f, 1.0f), Random.Range(-1.0f, 1.0f)) * ((1 - currentAccuracy) * (data.Spread / 10));
-                return this.transform.right + new Vector3(0, randomPointInScreen.y, 0);
+                return Model.ShootPoint.right + new Vector3(0, randomPointInScreen.y, 0);
             }
         }
-        protected void Tracer(float duration)
+        protected void Tracer(Vector2 direction, float duration)
         {
-
+            Model.CreateTracer(direction, duration);
         }
         protected void Muzzle()
         {
             Model.CreateMuzzle();
+        }
+        internal void Impact(Vector2 position)
+        {
+            Model.CreateImpact(position);
+            Decal(position, 0.3f);
+        }
+        internal void Decal(Vector2 position)
+        {
+            Model.CreateDecal(position);
+        }
+        internal void Decal(Vector2 position, float waitTime)
+        {
+            StartCoroutine(PaintDecal(position, waitTime));
+        }
+        IEnumerator PaintDecal(Vector2 position, float waitTime)
+        {
+            yield return new WaitForSeconds(waitTime);
+            Decal(position);
         }
         protected void DropShell()
         {

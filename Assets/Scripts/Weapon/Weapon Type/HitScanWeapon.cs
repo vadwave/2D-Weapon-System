@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEditor.PackageManager;
 using UnityEngine;
 
 namespace WeaponSystem
@@ -16,7 +13,7 @@ namespace WeaponSystem
             Ray2D ray = new Ray2D(origin, direction);
             RaycastHit2D hit = Physics2D.Raycast(origin, direction, data.Range, collidedMask);
             Debug.DrawRay(origin, direction * data.Range, Color.yellow, 1f);
-            float tracerDuration = 0;//Tracer Duration
+            float tracerDuration = data.Ammo.TracerDuration;
             if (hit)
             {
                 float distance = hit.distance;
@@ -24,10 +21,11 @@ namespace WeaponSystem
                 if(CheckIsOtherCollision(hit)) 
                     Damage(hit, distance);
                 ImpactForce(direction, distance, hit.collider.attachedRigidbody);
-                tracerDuration = distance / 1;//Tracer Speed
+                Impact(hit.point);
+                tracerDuration = distance / data.Ammo.TracerSpeed;
             }
             if (tracerDuration > TimeTracerDuration)
-                Tracer(tracerDuration);
+                Tracer(direction, tracerDuration);
         }
     }
 }

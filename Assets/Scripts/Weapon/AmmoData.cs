@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace WeaponSystem
@@ -18,11 +17,18 @@ namespace WeaponSystem
         public Sprite Icon { get => icon; private set => icon = value; }
         public float Speed { get => speed; private set => speed = value; }
         public float Mass { get => mass; private set => mass = value; }
+        public float Radius { get => radius; private set => radius = value; }
         public int Damage { get => damage; private set => damage = value; }
         public DamageMode DamageMode { get => damageMode; private set => damageMode = value; }
         public AnimationCurve DamageFalloffCurve { get => damageFalloffCurve; private set => damageFalloffCurve = value; }
         public float ImpactForce { get => impactForce; private set => impactForce = value; }
         public Projectile PrefabProjectile => projectile;
+        public GameObject PrefabMuzzle => muzzle;
+        public GameObject PrefabImpact => impact;
+        public GameObject PrefabDecal => decal;
+        public GameObject PrefabTracer => tracer;
+        public float TracerSpeed => tracerSpeed;
+        public float TracerDuration => tracerDuration;
 
         [SerializeField] private new string name;
         [SerializeField] private string desc;
@@ -44,6 +50,12 @@ namespace WeaponSystem
 
         [Header("Visual")]
         [SerializeField] private Projectile projectile;
+        [SerializeField] private GameObject muzzle;
+        [SerializeField] private GameObject impact;
+        [SerializeField] private GameObject decal;
+        [SerializeField] private GameObject tracer;
+        [SerializeField] private float tracerSpeed = 450.0f;
+        [SerializeField] private float tracerDuration = 1.0f;
 
         internal float MinDistanceForce(float distance)
         {

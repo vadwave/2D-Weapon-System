@@ -1,6 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace WeaponSystem
@@ -69,7 +67,6 @@ namespace WeaponSystem
         [SerializeField] private Transform magazinePoint;
 
         [SerializeField] private GameObject magazinePrefab;
-        [SerializeField] private GameObject muzzlePrefab;
 
         private float reloadTime;
         private float insertTime;
@@ -103,8 +100,49 @@ namespace WeaponSystem
 
         internal void CreateMuzzle()
         {
-            GameObject muzzle = Instantiate(muzzlePrefab, muzzlePoint);
+            if (!weapon.Data.Ammo.PrefabMuzzle)
+            {
+                Debug.LogWarning($"Weapon [{weapon.Origin.Name}] not Prefab Muzzle!");
+                return;
+            }
+            GameObject muzzle = Instantiate(weapon.Data.Ammo.PrefabMuzzle, muzzlePoint);
             Destroy(muzzle, 1f);
+        }
+
+        internal void CreateTracer(Vector2 direction, float duration)
+        {
+            if (!weapon.Data.Ammo.PrefabTracer)
+            {
+                Debug.LogWarning($"Weapon [{weapon.Origin.Name}] not Prefab Tracer!");
+                return;
+            }
+            Debug.Log($"Tracer duration {duration}");
+            Rigidbody2D tracer = Instantiate(weapon.Data.Ammo.PrefabTracer, muzzlePoint.position, Quaternion.identity).GetComponent<Rigidbody2D>();
+            tracer.velocity = direction * weapon.Data.Ammo.TracerSpeed;
+            Destroy(tracer.gameObject, duration);
+        }
+
+        internal void CreateImpact(Vector2 position)
+        {
+            if (!weapon.Data.Ammo.PrefabImpact)
+            {
+                Debug.LogWarning($"Weapon [{weapon.Origin.Name}] not Prefab Impact!");
+                return;
+            }
+            GameObject impact = Instantiate(weapon.Data.Ammo.PrefabImpact, position, Quaternion.identity);
+            Destroy(impact, 1f);
+        }
+
+        internal void CreateDecal(Vector2 position)
+        {
+            if (!weapon.Data.Ammo.PrefabDecal)
+            {
+                Debug.LogWarning($"Weapon [{weapon.Origin.Name}] not Prefab Decal!");
+                return;
+            }
+            Quaternion randomRotation = Quaternion.Euler(0, 0, UnityEngine.Random.Range(0f,360f));
+            GameObject decal = Instantiate(weapon.Data.Ammo.PrefabDecal, position, randomRotation);
+            Destroy(decal, 10f);
         }
 
         //Sound

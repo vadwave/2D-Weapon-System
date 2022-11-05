@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace WeaponSystem
@@ -16,7 +14,7 @@ namespace WeaponSystem
         }
         Projectile SpawnProjectile(Vector3 position)
         {
-            return Instantiate(data.Ammo.PrefabProjectile, position, Quaternion.identity);
+            return Instantiate(data.Ammo.PrefabProjectile, position, transform.rotation);
         }
     }
 }
