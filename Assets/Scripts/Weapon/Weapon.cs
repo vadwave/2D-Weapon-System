@@ -8,6 +8,7 @@ namespace WeaponSystem
     {
         public event Action<float, float, CapacityType> OnChangedCapacity;
         public event Action OnStartReloaded;
+        public event Action OnStopReloaded;
         public WeaponModel Model => model;
         public AmmoData Ammo => Origin.Ammo;
         public WeaponData Origin => data.Origin;
@@ -21,9 +22,34 @@ namespace WeaponSystem
         public bool FullMagazine => CurrentRounds == data.Capacity;
         public bool IsCanReloadMagazine => EmptyMagazine && !InventoryEmpty;
         public bool InventoryEmpty => InventoryIsEmpty(data.Ammo);
-        public bool IsCanAttack => !EmptyMagazine && !Attacking;
-        public bool IsCanReload => !isReloading && nextReloadTime < Time.time;
-        public float CurrentRounds { get => currentRounds; protected set { currentRounds = value; OnChangedCapacity?.Invoke(currentRounds, data.Capacity, data.Origin.CapacityType); } }
+        public bool IsCanAttack => !IsReloading && !Attacking && CurrentRounds >= 0;
+        public bool IsCanReload => !IsReloading && nextReloadTime < Time.time;
+        public float CurrentRounds { get => currentRounds; 
+            protected set 
+            { 
+                currentRounds = value; 
+                OnChangedCapacity?.Invoke(currentRounds, data.Capacity, data.Origin.CapacityType); 
+            } 
+        }
+        public float CurrentHeatLevel { get => currentHeatLevel;
+            protected set
+            { 
+                currentHeatLevel = Mathf.Clamp(value, 0, data.CapacityHeat); 
+            } 
+        }
+        public bool IsReloading { get => isReloading;
+            protected set
+            {
+                if (isReloading != value)
+                {
+                    isReloading = value;
+                    if (isReloading)
+                        OnStartReloaded?.Invoke();
+                    else
+                        OnStopReloaded?.Invoke();
+                }
+            }
+        }
 
         [SerializeField] protected WeaponData weaponData;
 
@@ -36,13 +62,18 @@ namespace WeaponSystem
         protected float nextAttackTime;
         protected float nextReloadTime;
         protected float currentRounds;
+        private float currentHeatLevel;
 
-        protected bool isReloading = false;
-
+        private bool isReloading = false;
+        private bool isOverheating = false;
 
         protected void Awake()
         {
             Initialize(weaponData);
+        }
+        protected void FixedUpdate()
+        {
+            Heating(Time.fixedDeltaTime);
         }
         protected bool LayerInMask(LayerMask mask, int layer)
         {
@@ -67,9 +98,10 @@ namespace WeaponSystem
         {
             this.model = Instantiate(this.data.Origin.Model, this.transform);
         }
+
         public void Trigger(bool isTriggered = false, bool isHelded = false)
         {
-            bool canAttack = IsCanReload && !Attacking && CurrentRounds >= 0;
+            bool canAttack = IsCanAttack;
             if (canAttack)
             {
                 switch (Origin.FireMode)
@@ -108,7 +140,7 @@ namespace WeaponSystem
                         break;
                 }
             }
-            bool canReloadBulletByBullet = nextReloadTime < Time.time && isReloading && data.Origin.ReloadMode == ReloadMode.BulletByBullet && !EmptyMagazine;
+            bool canReloadBulletByBullet = nextReloadTime < Time.time && IsReloading && data.Origin.ReloadMode == ReloadMode.BulletByBullet && !EmptyMagazine;
             if (canReloadBulletByBullet)
             {
                 if (isTriggered)
@@ -125,6 +157,14 @@ namespace WeaponSystem
                 }
             }
         }
+        public void TriggerReload()
+        {
+            bool canReload = IsCanReload && !Attacking && !FullMagazine && !InventoryEmpty;
+            if (canReload)
+            {
+                Reload();
+            }
+        }
         private void TriggerAttack(bool isActivated)
         {
             if (isActivated)
@@ -139,30 +179,21 @@ namespace WeaponSystem
                 }
             }
         }
-        protected void EmptyCapacity()
-        {
-            nextAttackTime = data.GetNextAttack(FireMode.None);
-            Model.Animator.OutOfAmmo();
-        }
-        private bool InventoryIsEmpty(AmmoData ammo)
-        {
-            return false;
-        }
-        private float RequestAmmo(AmmoData ammo, float value)
-        {
-            return value;
-        }
+
         public virtual void Attack()
         {
             //GetDirection
             nextAttackTime = data.GetNextAttack(currentFireMode);
             CurrentRounds -= data.Consume;
+            CurrentHeatLevel += data.Consume;
         }
-        
+        public virtual void Burst()
+        {
+            nextAttackTime = data.GetNextAttack(currentFireMode);
+        }
 
         public virtual void Reload()
         {
-            OnStartReloaded?.Invoke();
             switch (Origin.ReloadMode)
             {
                 case ReloadMode.None:
@@ -178,19 +209,41 @@ namespace WeaponSystem
                     break;
             }
         }
-
-        protected void ReloadBulletByBullet()
-        {
-            StartCoroutine(IE_ReloadBulletByBullet());
-        }
         protected void ReloadMagazine()
         {
             StartCoroutine(IE_ReloadMagazines());
             StartCoroutine(IE_DropMagazine());
         }
+        private IEnumerator IE_ReloadMagazines()
+        {
+            IsReloading = true;
+
+            Model.Animator.Reload(!EmptyMagazine);
+
+            yield return EmptyMagazine ? Model.CompleteReloadDuration : Model.ReloadDuration;
+
+            if (IsActive && IsReloading)
+            {
+                if (!EmptyMagazine)
+                {
+                    float amount = data.Capacity - CurrentRounds;
+                    CurrentRounds += RequestAmmo(data.Ammo, amount);
+                }
+                else
+                {
+                    CurrentRounds += RequestAmmo(data.Ammo, data.Capacity);
+                }
+            }
+
+            IsReloading = false;
+        }
+        protected void ReloadBulletByBullet()
+        {
+            StartCoroutine(IE_ReloadBulletByBullet());
+        }
         private IEnumerator IE_ReloadBulletByBullet()
         {
-            isReloading = true;
+            IsReloading = true;
 
             Model.Animator.StartReload(!EmptyMagazine);
 
@@ -205,19 +258,19 @@ namespace WeaponSystem
                 yield return Model.StartReloadDuration;
             }
 
-            while (IsActive && isReloading && !FullMagazine && !InventoryEmpty)
+            while (IsActive && IsReloading && !FullMagazine && !InventoryEmpty)
             {
                 Model.Animator.InsertRound();
                 yield return Model.InsertDuration;
 
-                if (IsActive && isReloading)
+                if (IsActive && IsReloading)
                 {
                     CurrentRounds += RequestAmmo(data.Ammo, data.Consume);
                 }
                 yield return Model.InsertDuration;
             }
 
-            if (IsActive && isReloading)
+            if (IsActive && IsReloading)
             {
                 StopReload();
             }
@@ -226,35 +279,10 @@ namespace WeaponSystem
         {
             StartCoroutine(IE_StopReload());
         }
-        private IEnumerator IE_ReloadMagazines()
-        {
-            isReloading = true;
-
-            Model.Animator.Reload(!EmptyMagazine);
-
-            yield return EmptyMagazine ? Model.CompleteReloadDuration : Model.ReloadDuration;
-
-            if (IsActive && isReloading)
-            {
-                if (!EmptyMagazine)
-                {
-                    float amount = data.Capacity - CurrentRounds;
-                    CurrentRounds += RequestAmmo(data.Ammo, amount);
-                }
-                else
-                {
-                    CurrentRounds += RequestAmmo(data.Ammo, data.Capacity);
-                }
-            }
-
-            isReloading = false;
-        }
-
-
         private IEnumerator IE_StopReload()
         {
             Model.Animator.StopReload();
-            isReloading = false;
+            IsReloading = false;
             nextReloadTime = Model.StopReloadTime + Time.time;
             yield return Model.StopReloadDuration;
         }
@@ -263,19 +291,71 @@ namespace WeaponSystem
             yield return EmptyMagazine ? Model.CompleteReloadDropDuration : Model.ReloadDropDuration;
             DropMagazine();
         }
-
         public void DropMagazine()
         {
 
         }
 
-
-        public void Overheat() { }
-        public void Charge() { }
-        public virtual void Burst() 
+        protected void EmptyCapacity()
         {
-            nextAttackTime = data.GetNextAttack(currentFireMode);
+            nextAttackTime = data.GetNextAttack(FireMode.None);
+            Model.Animator.OutOfAmmo();
         }
+        private bool InventoryIsEmpty(AmmoData ammo)
+        {
+            return false;
+        }
+        private float RequestAmmo(AmmoData ammo, float value)
+        {
+            return value;
+        }
+
+        void Heating(float delta)
+        {
+            if (data.CapacityHeat == 0) return;
+            float coolingDelay = 1f;
+            float percentHeat = (CurrentHeatLevel / data.CapacityHeat);
+            bool isCanOverheat = percentHeat == 1;
+            if (isCanOverheat)
+            {
+                Overheat();
+            }
+            else if (CurrentHeatLevel > 0 && nextAttackTime + coolingDelay < Time.time && !isCanOverheat)
+            {
+                Cooling(delta);
+                Model.Cooling(percentHeat, delta);
+            }
+            else
+            {
+                Model.Heating(percentHeat, delta);
+            }
+        }
+        void Cooling(float delta)
+        {
+            float speedCooling = data.CapacityHeat / data.OverheatTime;
+            float heatLevel = speedCooling * delta;
+            CurrentHeatLevel -= heatLevel;
+        }
+        void Overheat() 
+        {
+            //Start Overheating
+            if (!isOverheating)
+            {
+                float overheatDelay = Time.time + data.OverheatTime;
+                nextAttackTime = overheatDelay;
+                nextReloadTime = overheatDelay;
+                isOverheating = true;
+            }
+            //Stop Overheating
+            else if (nextAttackTime <= Time.time)
+            {
+                CurrentHeatLevel = 0;
+                isOverheating = false;
+            }
+        }
+
+        public void Charge() { }
+
         public void Modify() { }
         public void Switch() { }
 

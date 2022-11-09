@@ -73,6 +73,8 @@ namespace WeaponSystem
         public float Capacity => origin.Capacity;
         public float Consume => origin.Consume;
 
+        public float CapacityHeat => origin.CapacityHeat;
+        public float OverheatTime => origin.OverheatTime;
 
         const float oneMinute = 60.0f;
 
@@ -166,6 +168,7 @@ namespace WeaponSystem
         [SerializeField] private float reloadTime;
         [SerializeField] private bool autoReload;
         [Header("Overheating")]
+        [SerializeField] private float capacityHeat;
         [SerializeField] private float overheatTime;
         [Header("Visual")]
         [SerializeField] private WeaponModel model;
@@ -194,6 +197,7 @@ namespace WeaponSystem
         public float ReloadTime { get => reloadTime; set => reloadTime = value; }
         public bool AutoReload { get => autoReload; set => autoReload = value; }
         public float OverheatTime { get => overheatTime; set => overheatTime = value; }
+        public float CapacityHeat { get => capacityHeat; set => capacityHeat = value; }
         public WeaponModel Model { get => model; set => model = value; }
     }
 }

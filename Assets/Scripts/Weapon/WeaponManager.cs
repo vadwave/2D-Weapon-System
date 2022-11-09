@@ -9,6 +9,10 @@ namespace WeaponSystem
         [SerializeField] Weapon[] weapons;
         [SerializeField] Transform[] arms;
         [SerializeField] Text text;
+        private bool isReloaded;
+        private float currentCapacity;
+        private float maxCapacity;
+        private CapacityType typeCapacity;
 
         private void Awake()
         {
@@ -17,6 +21,7 @@ namespace WeaponSystem
                 weapon.Initialize(collidedMask);
                 weapon.OnChangedCapacity += ChangeCapacity;
                 weapon.OnStartReloaded += StartReloaded;
+                weapon.OnStopReloaded += StopReloaded;
             }
         }
         private void Update()
@@ -30,19 +35,37 @@ namespace WeaponSystem
             {
                 Trigger(false, true);
             }
+            else if (Input.GetKeyDown(KeyCode.R))
+            {
+                Reload();
+            }
         }
         void ChangeCapacity(float current, float max, CapacityType type)
         {
-            switch (type) 
+            currentCapacity = current;
+            maxCapacity = max;
+            typeCapacity = type;
+            Show();
+        }
+        void Show()
+        {
+            switch (typeCapacity)
             {
-                case CapacityType.Numeric: text.text = $"{current}/{max}"; break;
-                case CapacityType.Percent: text.text = $"{(float)System.Math.Round((current/max) * 100, 2)}%"; break;
-                default: text.text = $"{current}"; break;
+                case CapacityType.Numeric: text.text = $"{currentCapacity}/{maxCapacity}"; break;
+                case CapacityType.Percent: text.text = $"{(float)System.Math.Round((currentCapacity / maxCapacity) * 100, 2)}%"; break;
+                default: text.text = $"{currentCapacity}"; break;
             }
+            if(isReloaded) text.text += " Reloading";
         }
         void StartReloaded()
         {
-            text.text = $"Reload";
+            isReloaded = true;
+            Show();
+        }
+        void StopReloaded()
+        {
+            isReloaded = false;
+            Show();
         }
 
         void Trigger(bool isTrigger, bool isHold)
@@ -51,6 +74,14 @@ namespace WeaponSystem
             {
                 if(weapon.enabled && weapon.gameObject.activeInHierarchy)
                     weapon.Trigger(isTrigger, isHold);
+            }
+        }
+        void Reload()
+        {
+            foreach (Weapon weapon in weapons)
+            {
+                if (weapon.enabled && weapon.gameObject.activeInHierarchy)
+                    weapon.TriggerReload();
             }
         }
         void Rotate()

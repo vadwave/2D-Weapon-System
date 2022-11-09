@@ -74,10 +74,12 @@ namespace WeaponSystem
         private float startReloadTime;
         private float stopReloadTime;
         private Weapon weapon;
+        private SpriteRenderer render;
 
         public void Init(Weapon weapon)
         {
             this.weapon = weapon;
+            render = GetComponentInChildren<SpriteRenderer>();
             UpdateReloadTime();
         }
         void UpdateReloadTime()
@@ -143,6 +145,19 @@ namespace WeaponSystem
             Quaternion randomRotation = Quaternion.Euler(0, 0, UnityEngine.Random.Range(0f,360f));
             GameObject decal = Instantiate(weapon.Data.Ammo.PrefabDecal, position, randomRotation);
             Destroy(decal, 10f);
+        }
+
+        internal void Heating(float percentHeat, float delta)
+        {
+            percentHeat = 1 - percentHeat;
+            float speedHeating = 10f * delta;
+            Color percentRed = new Color(1, percentHeat, percentHeat);
+            render.color = Color.Lerp(render.color, percentRed, speedHeating);
+        }
+
+        internal void Cooling(float percentHeat, float delta)
+        {
+            Heating(percentHeat, delta);
         }
 
         //Sound
