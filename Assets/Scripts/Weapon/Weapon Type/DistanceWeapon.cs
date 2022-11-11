@@ -34,11 +34,10 @@ namespace WeaponSystem
             else
             {
                 Debug.DrawRay(Model.ShootPoint.position, this.transform.right * data.Range, Color.green, 1f);
-                shotDir = CalculateBulletSpread();
                 base.Attack();
-
                 for (int i = 0; i < data.BulletsPerShoot; i++)
                 {
+                    shotDir = CalculateBulletSpread();
                     Shot();
                 }
                 SetAttackTime();
@@ -50,7 +49,6 @@ namespace WeaponSystem
         }
 
 
-
         public override void Burst()
         {
             base.Burst();
@@ -58,14 +56,14 @@ namespace WeaponSystem
         }
         IEnumerator LaunchBurst()
         {
-            for(int x = 0; x < data.BulletsPerBurst; x++)
+            for(int x = 0; x < BulletsPerBurst; x++)
             {
                 if (EmptyMagazine) break;
-                shotDir = CalculateBulletSpread();
                 CurrentRounds -= data.Consume;
-
+                CurrentHeatLevel += data.Consume;
                 for (int i = 0; i < data.BulletsPerShoot; i++)
                 {
+                    shotDir = CalculateBulletSpread();
                     Shot();
                 }
                 SetAttackTime();
@@ -76,7 +74,7 @@ namespace WeaponSystem
 
                 yield return new WaitForSeconds(data.FireRate);
             }
-
+            if(IsChargingBurst) ReleaseCharge();
         }
         protected void UpdateAttackTime(float delta)
         {

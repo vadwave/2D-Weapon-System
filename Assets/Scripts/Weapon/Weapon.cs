@@ -7,6 +7,8 @@ namespace WeaponSystem
     public class Weapon : MonoBehaviour
     {
         public event Action<float, float, CapacityType> OnChangedCapacity;
+        public event Action<float, float> OnChangedHeat;
+        public event Action<float, float> OnChangedCharge;
         public event Action OnStartReloaded;
         public event Action OnStopReloaded;
         public WeaponModel Model => model;
@@ -24,20 +26,9 @@ namespace WeaponSystem
         public bool InventoryEmpty => InventoryIsEmpty(data.Ammo);
         public bool IsCanAttack => !IsReloading && !Attacking && CurrentRounds >= 0;
         public bool IsCanReload => !IsReloading && nextReloadTime < Time.time;
-        public float CurrentRounds { get => currentRounds; 
-            protected set 
-            { 
-                currentRounds = value; 
-                OnChangedCapacity?.Invoke(currentRounds, data.Capacity, data.Origin.CapacityType); 
-            } 
-        }
-        public float CurrentHeatLevel { get => currentHeatLevel;
-            protected set
-            { 
-                currentHeatLevel = Mathf.Clamp(value, 0, data.CapacityHeat); 
-            } 
-        }
-        public bool IsReloading { get => isReloading;
+        public bool IsReloading
+        {
+            get => isReloading;
             protected set
             {
                 if (isReloading != value)
@@ -50,6 +41,34 @@ namespace WeaponSystem
                 }
             }
         }
+        public bool IsCharged => data.ChargeTime > 0;
+        public bool IsHeated => data.CapacityHeat > 0;
+        public bool IsChargingBurst => data.BulletsPerBurst > 1;
+        public float CurrentRounds { get => currentRounds; 
+            protected set 
+            { 
+                currentRounds = value; 
+                OnChangedCapacity?.Invoke(currentRounds, data.Capacity, data.Origin.CapacityType); 
+            } 
+        }
+        public float Consume => isCharging && !IsChargingBurst ? CurrentChargeLevel : data.Consume;
+        public float CurrentHeatLevel { get => currentHeatLevel;
+            protected set
+            { 
+                currentHeatLevel = Mathf.Clamp(value, 0, data.CapacityHeat);
+                OnChangedHeat?.Invoke(currentHeatLevel, data.CapacityHeat);
+            } 
+        }
+        public float CurrentChargeLevel
+        {
+            get => currentChargeLevel;
+            protected set
+            {
+                currentChargeLevel = Mathf.Clamp(value, 0, data.ChargeCapacity);
+                OnChangedCharge?.Invoke(currentChargeLevel, data.ChargeCapacity);
+            }
+        }
+        public int BulletsPerBurst => isCharging && IsChargingBurst ? Mathf.RoundToInt(CurrentChargeLevel / data.Consume) : data.BulletsPerBurst;
 
         [SerializeField] protected WeaponData weaponData;
 
@@ -59,13 +78,18 @@ namespace WeaponSystem
         protected WeaponState state;
 
         protected FireMode currentFireMode;
-        protected float nextAttackTime;
-        protected float nextReloadTime;
-        protected float currentRounds;
-        private float currentHeatLevel;
 
-        private bool isReloading = false;
-        private bool isOverheating = false;
+        protected float nextAttackTime;
+        protected float nextChargeTime;
+        protected float nextReloadTime;
+
+        protected float currentRounds;
+        protected float currentHeatLevel;
+        protected float currentChargeLevel;
+
+        protected bool isReloading = false;
+        protected bool isOverheating = false;
+        protected bool isCharging = false;
 
         protected void Awake()
         {
@@ -74,6 +98,7 @@ namespace WeaponSystem
         protected void FixedUpdate()
         {
             Heating(Time.fixedDeltaTime);
+            Charging(Time.fixedDeltaTime);
         }
         protected bool LayerInMask(LayerMask mask, int layer)
         {
@@ -99,7 +124,7 @@ namespace WeaponSystem
             this.model = Instantiate(this.data.Origin.Model, this.transform);
         }
 
-        public void Trigger(bool isTriggered = false, bool isHelded = false)
+        public void Trigger(bool isTriggered = false, bool isHelded = false, bool isUpped = false)
         {
             bool canAttack = IsCanAttack;
             if (canAttack)
@@ -135,7 +160,20 @@ namespace WeaponSystem
                         break;
                     case FireMode.Charge:
                         {
-                            TriggerAttack(isHelded);
+                            if (isHelded) Charge();
+                            if (isUpped)
+                            {
+                                if (!isCharging) return;
+                                if (!IsChargingBurst) ReleaseCharge();
+                                if (IsCanReloadMagazine)
+                                {
+                                    Reload();
+                                }
+                                else
+                                {
+                                    Burst();
+                                }
+                            }
                         }
                         break;
                 }
@@ -156,6 +194,17 @@ namespace WeaponSystem
                     Reload();
                 }
             }
+        }
+        public virtual void Charge()
+        {
+            if (isCharging) return;
+            isCharging = true;
+        }
+        public virtual void ReleaseCharge()
+        {
+            if (!isCharging) return;
+            CurrentChargeLevel = 0;
+            isCharging = false;
         }
         public void TriggerReload()
         {
@@ -312,7 +361,7 @@ namespace WeaponSystem
 
         void Heating(float delta)
         {
-            if (data.CapacityHeat == 0) return;
+            if (!IsHeated) return;
             float coolingDelay = 1f;
             float percentHeat = (CurrentHeatLevel / data.CapacityHeat);
             bool isCanOverheat = percentHeat == 1;
@@ -353,8 +402,21 @@ namespace WeaponSystem
                 isOverheating = false;
             }
         }
-
-        public void Charge() { }
+        void Charging(float delta)
+        {
+            if (!IsCharged) return;
+            if (isCharging)
+            {
+                bool isCanRequered = data.BulletsPerBurst > 1 ? CurrentChargeLevel < CurrentRounds : CurrentChargeLevel < data.ChargeCapacity;
+                if (nextChargeTime < Time.time && CurrentChargeLevel < data.ChargeCapacity && isCanRequered)
+                {
+                    float speedCharging = data.ChargeCapacity / data.ChargeTime;
+                    float timeChargeOne = data.Consume / speedCharging;
+                    CurrentChargeLevel += data.Consume;
+                    nextChargeTime = Time.time + timeChargeOne;
+                }
+            }
+        }
 
         public void Modify() { }
         public void Switch() { }

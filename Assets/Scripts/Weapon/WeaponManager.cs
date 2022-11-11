@@ -9,6 +9,8 @@ namespace WeaponSystem
         [SerializeField] Weapon[] weapons;
         [SerializeField] Transform[] arms;
         [SerializeField] Text text;
+        [SerializeField] Text textCharge;
+        [SerializeField] Text textHeat;
         private bool isReloaded;
         private float currentCapacity;
         private float maxCapacity;
@@ -20,6 +22,8 @@ namespace WeaponSystem
             {
                 weapon.Initialize(collidedMask);
                 weapon.OnChangedCapacity += ChangeCapacity;
+                weapon.OnChangedCharge += ChangeCharge;
+                weapon.OnChangedHeat += ChangeHeat;
                 weapon.OnStartReloaded += StartReloaded;
                 weapon.OnStopReloaded += StopReloaded;
             }
@@ -35,6 +39,10 @@ namespace WeaponSystem
             {
                 Trigger(false, true);
             }
+            else if (Input.GetMouseButtonUp(0))
+            {
+                Trigger(false, false, true);
+            }
             else if (Input.GetKeyDown(KeyCode.R))
             {
                 Reload();
@@ -47,15 +55,27 @@ namespace WeaponSystem
             typeCapacity = type;
             Show();
         }
+        void ChangeCharge(float current, float max)
+        {
+            textCharge.text = "[";
+            for (int i = 0; i < current; i++)
+                textCharge.text += ">";
+            textCharge.text += "]";
+            //textCharge.text = $"[{current}|{max}]";
+        }
+        void ChangeHeat(float current, float max)
+        {
+            textHeat.text = $"[{Mathf.RoundToInt((current / max) * 100f)}%]";
+        }
         void Show()
         {
             switch (typeCapacity)
             {
-                case CapacityType.Numeric: text.text = $"{currentCapacity}/{maxCapacity}"; break;
-                case CapacityType.Percent: text.text = $"{(float)System.Math.Round((currentCapacity / maxCapacity) * 100, 2)}%"; break;
-                default: text.text = $"{currentCapacity}"; break;
+                case CapacityType.Numeric: text.text = $"[ {currentCapacity} | {maxCapacity} ]"; break;
+                case CapacityType.Percent: text.text = $"[ {(float)System.Math.Round((currentCapacity / maxCapacity) * 100, 2)}% ]"; break;
+                default: text.text = $"[ {currentCapacity} ]"; break;
             }
-            if(isReloaded) text.text += " Reloading";
+            if (isReloaded) text.text += " [Reload]";
         }
         void StartReloaded()
         {
@@ -68,12 +88,12 @@ namespace WeaponSystem
             Show();
         }
 
-        void Trigger(bool isTrigger, bool isHold)
+        void Trigger(bool isTrigger, bool isHold, bool isUp = false)
         {
             foreach (Weapon weapon in weapons)
             {
                 if(weapon.enabled && weapon.gameObject.activeInHierarchy)
-                    weapon.Trigger(isTrigger, isHold);
+                    weapon.Trigger(isTrigger, isHold, isUp);
             }
         }
         void Reload()
