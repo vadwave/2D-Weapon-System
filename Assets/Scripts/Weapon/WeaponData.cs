@@ -16,6 +16,13 @@ namespace WeaponSystem
         Numeric,
         Percent,
     }
+    public enum ChargeType
+    {
+        None,
+        Standart,
+        Full,
+        Capacity
+    }
     public enum FireMode
     {
         None,
@@ -112,6 +119,7 @@ namespace WeaponSystem
             {
                 case FireMode.None: return Time.time + 0.25f;
                 case FireMode.Burst: return Time.time + FireRate * (BulletsPerBurst + 1);
+                case FireMode.Charge: return Time.time + FireRate * (BulletsPerBurst + 1);
                 default: return Time.time + FireRate;
             }
         }
@@ -175,8 +183,10 @@ namespace WeaponSystem
         [SerializeField] private float capacityHeat;
         [SerializeField] private float overheatTime;
         [Header("Charging")]
+        [SerializeField] private ChargeType chargeType;
         [SerializeField] private float chargeCapacity;
         [SerializeField] private float chargeTime;
+        [SerializeField] private bool shotAfterFullCharge;
         [Header("Visual")]
         [SerializeField] private WeaponModel model;
 
@@ -205,7 +215,9 @@ namespace WeaponSystem
         public bool AutoReload { get => autoReload; set => autoReload = value; }
         public float OverheatTime { get => overheatTime; set => overheatTime = value; }
         public float CapacityHeat { get => capacityHeat; set => capacityHeat = value; }
+        public ChargeType ChargeType { get => chargeType; set => chargeType = value; }
         public float ChargeTime { get => chargeTime; set => chargeTime = value; }
+        public bool ShotAfterFullCharge { get => shotAfterFullCharge; set => shotAfterFullCharge = value; }
         public float ChargeCapacity { get => chargeCapacity; set => chargeCapacity = value; }
         public WeaponModel Model { get => model; set => model = value; }
     }

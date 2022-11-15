@@ -41,23 +41,29 @@ namespace WeaponSystem
                 }
             }
         }
-        public bool IsCharged => data.ChargeTime > 0;
+        public bool IsCharged => data.ChargeTime > 0 && data.Origin.ChargeType != ChargeType.None && data.Origin.FireMode == FireMode.Charge;
         public bool IsHeated => data.CapacityHeat > 0;
         public bool IsChargingBurst => data.BulletsPerBurst > 1;
-        public float CurrentRounds { get => currentRounds; 
-            protected set 
-            { 
-                currentRounds = value; 
-                OnChangedCapacity?.Invoke(currentRounds, data.Capacity, data.Origin.CapacityType); 
-            } 
+        public float CurrentRounds { get => currentRounds;
+            protected set
+            {
+                if (currentRounds != value)
+                {
+                    currentRounds = value;
+                    OnChangedCapacity?.Invoke(currentRounds, data.Capacity, data.Origin.CapacityType);
+                    if (data.Origin.AutoReload && IsCanReloadMagazine) Reload();
+                }
+            }
         }
-        public float Consume => isCharging && !IsChargingBurst ? CurrentChargeLevel : data.Consume;
         public float CurrentHeatLevel { get => currentHeatLevel;
             protected set
-            { 
-                currentHeatLevel = Mathf.Clamp(value, 0, data.CapacityHeat);
-                OnChangedHeat?.Invoke(currentHeatLevel, data.CapacityHeat);
-            } 
+            {
+                if (IsHeated)
+                {
+                    currentHeatLevel = Mathf.Clamp(value, 0, data.CapacityHeat);
+                    OnChangedHeat?.Invoke(currentHeatLevel, data.CapacityHeat);
+                }
+            }
         }
         public float CurrentChargeLevel
         {
@@ -68,7 +74,21 @@ namespace WeaponSystem
                 OnChangedCharge?.Invoke(currentChargeLevel, data.ChargeCapacity);
             }
         }
-        public int BulletsPerBurst => isCharging && IsChargingBurst ? Mathf.RoundToInt(CurrentChargeLevel / data.Consume) : data.BulletsPerBurst;
+        public int BulletsPerBurst
+        {
+            get
+            {
+                switch (data.Origin.ChargeType)
+                {
+                    case ChargeType.None: return data.BulletsPerBurst;
+                    case ChargeType.Standart: return data.BulletsPerBurst;
+                    case ChargeType.Full: return (CurrentChargeLevel == data.ChargeCapacity) ? data.BulletsPerBurst : 0;
+                    case ChargeType.Capacity: return (Mathf.RoundToInt(CurrentChargeLevel / data.Consume));
+                    default: return data.BulletsPerBurst;
+                }
+            }
+        }
+
 
         [SerializeField] protected WeaponData weaponData;
 
@@ -104,7 +124,7 @@ namespace WeaponSystem
         {
             return ((mask.value & (1 << layer)) != 0);
         }
-        public void Initialize(WeaponData data)
+        public virtual void Initialize(WeaponData data)
         {
             this.data = new WeaponRealData(data);
             this.state = WeaponState.Idle;
@@ -164,7 +184,6 @@ namespace WeaponSystem
                             if (isUpped)
                             {
                                 if (!isCharging) return;
-                                if (!IsChargingBurst) ReleaseCharge();
                                 if (IsCanReloadMagazine)
                                 {
                                     Reload();
@@ -203,7 +222,6 @@ namespace WeaponSystem
         public virtual void ReleaseCharge()
         {
             if (!isCharging) return;
-            CurrentChargeLevel = 0;
             isCharging = false;
         }
         public void TriggerReload()
@@ -239,6 +257,7 @@ namespace WeaponSystem
         public virtual void Burst()
         {
             nextAttackTime = data.GetNextAttack(currentFireMode);
+            if (data.Origin.FireMode == FireMode.Charge) ReleaseCharge();
         }
 
         public virtual void Reload()
@@ -367,6 +386,7 @@ namespace WeaponSystem
             bool isCanOverheat = percentHeat == 1;
             if (isCanOverheat)
             {
+                Model.Heating(percentHeat, delta);
                 Overheat();
             }
             else if (CurrentHeatLevel > 0 && nextAttackTime + coolingDelay < Time.time && !isCanOverheat)
@@ -405,7 +425,7 @@ namespace WeaponSystem
         void Charging(float delta)
         {
             if (!IsCharged) return;
-            if (isCharging)
+            if (isCharging && nextAttackTime < Time.time)
             {
                 bool isCanRequered = data.BulletsPerBurst > 1 ? CurrentChargeLevel < CurrentRounds : CurrentChargeLevel < data.ChargeCapacity;
                 if (nextChargeTime < Time.time && CurrentChargeLevel < data.ChargeCapacity && isCanRequered)
@@ -424,5 +444,56 @@ namespace WeaponSystem
 
         public void Hide() { }
         public void Draw() { }
+
+        public float CalculateDistanceDamage(float distance)
+        {
+            return data.CalculateDistanceDamage(distance);
+        }
+        public void Damage(RaycastHit2D hit, float distance)
+        {
+            Vector2 hitPosition = hit.point;
+            float damage = CalculateDistanceDamage(distance);
+            IDamageable damageableTarget = hit.collider.GetComponent<IDamageable>();
+            damageableTarget?.Damage(damage, transform.root.position, hitPosition);
+        }
+        public void Damage(Collider2D collision, float distance, Vector2 hitPosition)
+        {
+            float damage = CalculateDistanceDamage(distance);
+            IDamageable damageableTarget = collision.GetComponent<IDamageable>();
+            damageableTarget?.Damage(damage, transform.root.position, hitPosition);
+        }
+        public bool CheckIsOtherCollision(RaycastHit2D hit)
+        {
+            //if (hit.transform.root == transform.root) return false;
+            if (!LayerInMask(collidedMask, hit.collider.gameObject.layer)) return false;
+            return true;
+        }
+        public void ImpactForce(Vector2 direction, float distance, Rigidbody2D rigidBody)
+        {
+            if (rigidBody)
+            {
+                float impactForce = data.CalculateImpactForce(distance);
+                Vector2 force = direction * impactForce;
+                rigidBody.AddForce(force, ForceMode2D.Impulse);
+            }
+        }
+        internal void Impact(Vector2 position)
+        {
+            Model.CreateImpact(position);
+            Decal(position, 0.3f);
+        }
+        internal void Decal(Vector2 position)
+        {
+            Model.CreateDecal(position);
+        }
+        internal void Decal(Vector2 position, float waitTime)
+        {
+            StartCoroutine(PaintDecal(position, waitTime));
+        }
+        IEnumerator PaintDecal(Vector2 position, float waitTime)
+        {
+            yield return new WaitForSeconds(waitTime);
+            Decal(position);
+        }
     }
 }

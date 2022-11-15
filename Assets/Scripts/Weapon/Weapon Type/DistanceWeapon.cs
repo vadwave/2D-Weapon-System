@@ -56,11 +56,13 @@ namespace WeaponSystem
         }
         IEnumerator LaunchBurst()
         {
-            for(int x = 0; x < BulletsPerBurst; x++)
+            int bullets = BulletsPerBurst;
+            for (int x = 0; x < bullets; x++)
             {
-                if (EmptyMagazine) break;
+                if (EmptyMagazine || isOverheating) break;
                 CurrentRounds -= data.Consume;
                 CurrentHeatLevel += data.Consume;
+                if(data.Origin.ChargeType == ChargeType.Capacity) CurrentChargeLevel -= data.Consume;
                 for (int i = 0; i < data.BulletsPerShoot; i++)
                 {
                     shotDir = CalculateBulletSpread();
@@ -74,7 +76,7 @@ namespace WeaponSystem
 
                 yield return new WaitForSeconds(data.FireRate);
             }
-            if(IsChargingBurst) ReleaseCharge();
+            CurrentChargeLevel = 0;
         }
         protected void UpdateAttackTime(float delta)
         {
@@ -93,38 +95,6 @@ namespace WeaponSystem
         {
 
         }
-        public float CalculateDistanceDamage(float distance)
-        {
-            return data.CalculateDistanceDamage(distance);
-        }
-        public void Damage(RaycastHit2D hit, float distance)
-        {
-            Vector2 hitPosition = hit.point;
-            float damage = CalculateDistanceDamage(distance);
-            IDamageable damageableTarget = hit.collider.GetComponent<IDamageable>();
-            damageableTarget?.Damage(damage, transform.root.position, hitPosition);
-        }
-        public void Damage(Collider2D collision, float distance, Vector2 hitPosition)
-        {
-            float damage = CalculateDistanceDamage(distance);
-            IDamageable damageableTarget = collision.GetComponent<IDamageable>();
-            damageableTarget?.Damage(damage, transform.root.position, hitPosition);
-        }
-        public bool CheckIsOtherCollision(RaycastHit2D hit)
-        {
-            //if (hit.transform.root == transform.root) return false;
-            if (!LayerInMask(collidedMask, hit.collider.gameObject.layer)) return false;
-            return true;
-        }
-        public void ImpactForce(Vector2 direction, float distance, Rigidbody2D rigidBody)
-        {
-            if (rigidBody)
-            {
-                float impactForce = data.CalculateImpactForce(distance);
-                Vector2 force = direction * impactForce;
-                rigidBody.AddForce(force, ForceMode2D.Impulse);
-            }
-        }
         private void CalculateCurrentAccuracy(float delta)
         {
             float stateAccuracy = data.GetStateAccuracy(IsShoot, IsAiming, IsIdling);
@@ -140,8 +110,9 @@ namespace WeaponSystem
             }
             else
             {
-                Vector2 randomPointInScreen = new Vector2(Random.Range(-1.0f, 1.0f), Random.Range(-1.0f, 1.0f)) * ((1 - currentAccuracy) * (data.Spread / 10));
-                return Model.ShootPoint.right + new Vector3(0, randomPointInScreen.y, 0);
+                float valueAcurrace = (1 - currentAccuracy) * (data.Spread / 10);
+                Vector2 randomPointInScreen = new Vector2(Random.Range(-1.0f, 1.0f) * valueAcurrace, Random.Range(-1.0f, 1.0f) * valueAcurrace);
+                return Model.ShootPoint.right + new Vector3(randomPointInScreen.x, randomPointInScreen.y, 0);
             }
         }
         protected void Tracer(Vector2 direction, float duration)
@@ -151,24 +122,6 @@ namespace WeaponSystem
         protected void Muzzle()
         {
             Model.CreateMuzzle();
-        }
-        internal void Impact(Vector2 position)
-        {
-            Model.CreateImpact(position);
-            Decal(position, 0.3f);
-        }
-        internal void Decal(Vector2 position)
-        {
-            Model.CreateDecal(position);
-        }
-        internal void Decal(Vector2 position, float waitTime)
-        {
-            StartCoroutine(PaintDecal(position, waitTime));
-        }
-        IEnumerator PaintDecal(Vector2 position, float waitTime)
-        {
-            yield return new WaitForSeconds(waitTime);
-            Decal(position);
         }
         protected void DropShell()
         {

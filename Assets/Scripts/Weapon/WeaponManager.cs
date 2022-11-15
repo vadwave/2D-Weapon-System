@@ -109,11 +109,22 @@ namespace WeaponSystem
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             foreach(Transform transform in arms)
             {
-                transform.right = mousePos - (Vector2)transform.position;
+                var weaponPos = weapons[0].Model.ShootPoint.transform.position - transform.right;
+                Vector2 bodyPoint = weaponPos;
+                Vector2 direction = mousePos - bodyPoint;
+
+                DebugCross(bodyPoint, Color.red);
+                Debug.DrawRay(bodyPoint, direction, Color.magenta);
+
+                float rotZ = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+                var lookRotation = Quaternion.Euler(rotZ * Vector3.forward);
+                transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, 100f * Time.deltaTime);
             }
         }
         private void OnDrawGizmos()
         {
+            Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            DebugCross(mousePos, Color.yellow);
             foreach (Transform transform in arms)
             {
                 Weapon weapon = transform.GetComponentInChildren<Weapon>();
@@ -123,6 +134,13 @@ namespace WeaponSystem
                     Debug.DrawRay(weapon.Model.ShootPoint.position, weapon.Model.ShootPoint.right * weapon.Data.Range, Color.blue);
                 }
             }
+        }
+        public static void DebugCross(Vector2 point, Color color, float size = 0.25f)
+        {
+            Debug.DrawLine(point, point + (Vector2.down * size), color);
+            Debug.DrawLine(point, point + (Vector2.up * size), color);
+            Debug.DrawLine(point, point + (Vector2.left * size), color);
+            Debug.DrawLine(point, point + (Vector2.right * size), color);
         }
     }
 }
