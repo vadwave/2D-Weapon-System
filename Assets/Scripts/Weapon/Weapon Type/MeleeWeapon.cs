@@ -22,6 +22,7 @@ namespace WeaponSystem
             base.Attack();
             Damage();
             Model.Animator.Shot(EmptyMagazine);
+            if (IsCanAutoReloadAfterShot) Reload();
         }
         void Damage()
         {

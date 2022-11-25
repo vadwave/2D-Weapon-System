@@ -27,25 +27,19 @@ namespace WeaponSystem
         }
         public override void Attack()
         {
-            if (IsCanReloadMagazine)
+            Debug.DrawRay(Model.ShootPoint.position, this.transform.right * data.Range, Color.green, 1f);
+            base.Attack();
+            for (int i = 0; i < data.BulletsPerShoot; i++)
             {
-                EmptyCapacity();
+                shotDir = CalculateBulletSpread();
+                Shot();
             }
-            else
-            {
-                Debug.DrawRay(Model.ShootPoint.position, this.transform.right * data.Range, Color.green, 1f);
-                base.Attack();
-                for (int i = 0; i < data.BulletsPerShoot; i++)
-                {
-                    shotDir = CalculateBulletSpread();
-                    Shot();
-                }
-                SetAttackTime();
-                Model.Animator.Shot(EmptyMagazine);
-                Muzzle();
-                DropShell();
-                Recoil();
-            }
+            SetAttackTime();
+            Model.Animator.Shot(EmptyMagazine);
+            Muzzle();
+            DropShell();
+            Recoil();
+            if (IsCanAutoReloadAfterShot) Reload();
         }
 
 
@@ -76,6 +70,7 @@ namespace WeaponSystem
 
                 yield return new WaitForSeconds(data.FireRate);
             }
+            if (IsCanAutoReloadAfterShot) Reload();
             CurrentChargeLevel = 0;
         }
         protected void UpdateAttackTime(float delta)

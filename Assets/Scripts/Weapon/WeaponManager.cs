@@ -1,8 +1,17 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace WeaponSystem
 {
+    [Serializable]
+    public enum InputType
+    {
+        Down,
+        Hold,
+        Up,
+    }
+
     public class WeaponManager : MonoBehaviour
     {
         [SerializeField] LayerMask collidedMask;
@@ -15,6 +24,7 @@ namespace WeaponSystem
         private float currentCapacity;
         private float maxCapacity;
         private CapacityType typeCapacity;
+        private int currentIndex = 0;
 
         private void Awake()
         {
@@ -33,20 +43,31 @@ namespace WeaponSystem
             Rotate();
             if (Input.GetMouseButtonDown(0))
             {
-                Trigger(true, false);
+                Trigger(InputType.Down);
             }
             else if (Input.GetMouseButton(0))
             {
-                Trigger(false, true);
+                Trigger(InputType.Hold);
             }
             else if (Input.GetMouseButtonUp(0))
             {
-                Trigger(false, false, true);
+                Trigger(InputType.Up);
             }
-            else if (Input.GetKeyDown(KeyCode.R))
+            if (Input.GetKeyDown(KeyCode.R))
             {
                 Reload();
             }
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                ChangeWeapon();
+            }
+        }
+        void ChangeWeapon()
+        {
+            weapons[currentIndex].gameObject.SetActive(false);
+            if (currentIndex == weapons.Length - 1) currentIndex = 0;
+            else currentIndex++;
+            weapons[currentIndex].gameObject.SetActive(true);
         }
         void ChangeCapacity(float current, float max, CapacityType type)
         {
@@ -88,12 +109,12 @@ namespace WeaponSystem
             Show();
         }
 
-        void Trigger(bool isTrigger, bool isHold, bool isUp = false)
+        void Trigger(InputType input)
         {
             foreach (Weapon weapon in weapons)
             {
                 if(weapon.enabled && weapon.gameObject.activeInHierarchy)
-                    weapon.Trigger(isTrigger, isHold, isUp);
+                    weapon.Trigger(input);
             }
         }
         void Reload()

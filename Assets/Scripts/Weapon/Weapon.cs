@@ -26,6 +26,8 @@ namespace WeaponSystem
         public bool InventoryEmpty => InventoryIsEmpty(data.Ammo);
         public bool IsCanAttack => !IsReloading && !Attacking && CurrentRounds >= 0;
         public bool IsCanReload => !IsReloading && nextReloadTime < Time.time;
+        public bool IsCanAutoReloadAfterShot => data.Origin.AutoReload == AutoReload.AfterShot && IsCanReloadMagazine;
+        public bool IsCanAutoReloadTrigger => data.Origin.AutoReload == AutoReload.Trigger && IsCanReloadMagazine;
         public bool IsReloading
         {
             get => isReloading;
@@ -51,7 +53,6 @@ namespace WeaponSystem
                 {
                     currentRounds = value;
                     OnChangedCapacity?.Invoke(currentRounds, data.Capacity, data.Origin.CapacityType);
-                    if (data.Origin.AutoReload && IsCanReloadMagazine) Reload();
                 }
             }
         }
@@ -144,75 +145,87 @@ namespace WeaponSystem
             this.model = Instantiate(this.data.Origin.Model, this.transform);
         }
 
-        public void Trigger(bool isTriggered = false, bool isHelded = false, bool isUpped = false)
+        public void Trigger(InputType input)
         {
-            bool canAttack = IsCanAttack;
+            bool canAttack = IsCanAttack && !isCharging;
             if (canAttack)
             {
-                switch (Origin.FireMode)
+                if (IsCanAutoReloadTrigger)
                 {
-                    case FireMode.None:
-                        break;
-                    case FireMode.SemiAuto:
-                        {
-                            TriggerAttack(isTriggered);
-                        }
-                        break;
-                    case FireMode.FullAuto:
-                        {
-                            TriggerAttack(isHelded);
-                        }
-                        break;
-                    case FireMode.Burst:
-                        {
-                            if (isTriggered)
+                    if ((input == InputType.Down && (Origin.FireMode == FireMode.SemiAuto || Origin.FireMode == FireMode.Burst)) ||
+                        (input == InputType.Hold && Origin.FireMode == FireMode.FullAuto) ||
+                        (input == InputType.Up && Origin.FireMode == FireMode.Charge))
+                        Reload();
+                }
+                else if (EmptyMagazine)
+                {
+                    if ((input == InputType.Down && (Origin.FireMode == FireMode.SemiAuto || Origin.FireMode == FireMode.Burst || Origin.FireMode == FireMode.FullAuto)) ||
+                        (input == InputType.Up && Origin.FireMode == FireMode.Charge))
+                        EmptyCapacity();
+                }
+                else
+                {
+                    switch (Origin.FireMode)
+                    {
+                        case FireMode.None: break;
+                        case FireMode.SemiAuto:
                             {
-                                if (IsCanReloadMagazine)
+                                if (input == InputType.Down)
                                 {
-                                    Reload();
+                                    Attack();
                                 }
-                                else
+                            }
+                            break;
+                        case FireMode.FullAuto:
+                            {
+                                if (input == InputType.Hold)
+                                {
+                                    Attack();
+                                }
+                            }
+                            break;
+                        case FireMode.Burst:
+                            {
+                                if (input == InputType.Down)
                                 {
                                     Burst();
                                 }
                             }
-                        }
-                        break;
-                    case FireMode.Charge:
-                        {
-                            if (isHelded) Charge();
-                            if (isUpped)
+                            break;
+                        case FireMode.Charge:
                             {
-                                if (!isCharging) return;
-                                if (IsCanReloadMagazine)
+                                if (input == InputType.Hold)
                                 {
-                                    Reload();
+                                    Charge();
                                 }
-                                else
+                                else if (input == InputType.Up)
                                 {
+                                    if (!isCharging) return;
                                     Burst();
                                 }
                             }
-                        }
-                        break;
+                            break;
+                    }
                 }
             }
             bool canReloadBulletByBullet = nextReloadTime < Time.time && IsReloading && data.Origin.ReloadMode == ReloadMode.BulletByBullet && !EmptyMagazine;
             if (canReloadBulletByBullet)
             {
-                if (isTriggered)
+                if (input == InputType.Down)
                 {
                     StopReload();
                 }
             }
+            /*
             bool canReload = IsCanReload && !Attacking && IsCanReloadMagazine;
             if (canReload)
             {
-                if (isTriggered)
+                if (input == InputType.Down)
                 {
                     Reload();
                 }
             }
+            */
         }
         public virtual void Charge()
         {
@@ -232,21 +245,6 @@ namespace WeaponSystem
                 Reload();
             }
         }
-        private void TriggerAttack(bool isActivated)
-        {
-            if (isActivated)
-            {
-                if (IsCanReloadMagazine)
-                {
-                    Reload();
-                }
-                else
-                {
-                    Attack();
-                }
-            }
-        }
-
         public virtual void Attack()
         {
             //GetDirection
@@ -414,6 +412,7 @@ namespace WeaponSystem
                 nextAttackTime = overheatDelay;
                 nextReloadTime = overheatDelay;
                 isOverheating = true;
+                Model.Animator.Overheat();
             }
             //Stop Overheating
             else if (nextAttackTime <= Time.time)

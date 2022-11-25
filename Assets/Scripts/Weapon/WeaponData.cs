@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace WeaponSystem
 {
+    [Serializable]
     public enum ShotType
     {
         None,
@@ -11,11 +12,13 @@ namespace WeaponSystem
         Melee,
         Target,
     }
+    [Serializable]
     public enum CapacityType
     {
         Numeric,
         Percent,
     }
+    [Serializable]
     public enum ChargeType
     {
         None,
@@ -23,6 +26,7 @@ namespace WeaponSystem
         Full,
         Capacity
     }
+    [Serializable]
     public enum FireMode
     {
         None,
@@ -31,12 +35,21 @@ namespace WeaponSystem
         Burst,
         Charge,
     }
+    [Serializable]
     public enum ReloadMode
     {
         None,
         ChangeMagazine,
         BulletByBullet,
     }
+    [Serializable]
+    public enum AutoReload
+    {
+        None,
+        Trigger,
+        AfterShot
+    }
+    [Serializable]
     public enum WeaponState
     {
         Idle,
@@ -178,7 +191,7 @@ namespace WeaponSystem
         [Header("Reload")]
         [SerializeField] private ReloadMode reloadMode;
         [SerializeField] private float reloadTime;
-        [SerializeField] private bool autoReload;
+        [SerializeField] private AutoReload autoReload;
         [Header("Overheating")]
         [SerializeField] private float capacityHeat;
         [SerializeField] private float overheatTime;
@@ -212,7 +225,7 @@ namespace WeaponSystem
         public float Consume { get => consume; set => consume = value; }
         public ReloadMode ReloadMode { get => reloadMode; set => reloadMode = value; }
         public float ReloadTime { get => reloadTime; set => reloadTime = value; }
-        public bool AutoReload { get => autoReload; set => autoReload = value; }
+        public AutoReload AutoReload { get => autoReload; set => autoReload = value; }
         public float OverheatTime { get => overheatTime; set => overheatTime = value; }
         public float CapacityHeat { get => capacityHeat; set => capacityHeat = value; }
         public ChargeType ChargeType { get => chargeType; set => chargeType = value; }
