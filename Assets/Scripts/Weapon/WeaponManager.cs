@@ -36,7 +36,10 @@ namespace WeaponSystem
                 weapon.OnChangedHeat += ChangeHeat;
                 weapon.OnStartReloaded += StartReloaded;
                 weapon.OnStopReloaded += StopReloaded;
+                weapon.Model.CreateShellEjection(arms[0]);
             }
+            weapons[currentIndex].Draw();
+            ChangeCapacity(weapons[currentIndex].CurrentRounds, weapons[currentIndex].Data.MagazineCapacity, weapons[currentIndex].Data.Origin.CapacityType);
         }
         private void Update()
         {
@@ -64,10 +67,13 @@ namespace WeaponSystem
         }
         void ChangeWeapon()
         {
+            weapons[currentIndex].Hide();
             weapons[currentIndex].gameObject.SetActive(false);
             if (currentIndex == weapons.Length - 1) currentIndex = 0;
             else currentIndex++;
             weapons[currentIndex].gameObject.SetActive(true);
+            weapons[currentIndex].Draw();
+            ChangeCapacity(weapons[currentIndex].CurrentRounds, weapons[currentIndex].Data.MagazineCapacity, weapons[currentIndex].Data.Origin.CapacityType);
         }
         void ChangeCapacity(float current, float max, CapacityType type)
         {

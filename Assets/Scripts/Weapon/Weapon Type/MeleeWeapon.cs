@@ -21,7 +21,7 @@ namespace WeaponSystem
             Debug.DrawRay(Model.ShootPoint.position, this.transform.right * data.Range, Color.green, 1f);
             base.Attack();
             Damage();
-            Model.Animator.Shot(EmptyMagazine);
+            Model.Animator.Shot(EmptyCapacity);
             if (IsCanAutoReloadAfterShot) Reload();
         }
         void Damage()

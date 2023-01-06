@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace WeaponSystem
@@ -7,10 +8,20 @@ namespace WeaponSystem
     public class WeaponAnimator
     {
         [SerializeField] Animator animator;
+        [SerializeField] CharacterAnimator mainAnimator;
+
+        public float DrawAnimationLength 
+        {
+            get { return 0.3f; }    
+        }
+        internal void Initialize(FireMode fireMode)
+        {
+            mainAnimator?.Initialize(fireMode);
+        }
 
         internal void InsertRound()
         {
-
+            mainAnimator?.Insert(1f);
         }
 
         internal void OutOfAmmo()
@@ -20,23 +31,43 @@ namespace WeaponSystem
 
         internal void Reload(bool roundInChamber)
         {
-
+            mainAnimator?.Reload(roundInChamber, 0.6f);
         }
 
         internal void Shot(bool lastRound)
         {
-            animator.SetFloat("Speed", 1);
-            animator.CrossFadeInFixedTime("Recoil", 0.1f);
+            float speed = (lastRound) ? 0.5f : 1.0f;
+            if (mainAnimator == null)
+            {
+                animator?.SetFloat("Speed", speed);
+                animator?.CrossFadeInFixedTime("Recoil", 0.1f);
+            }
+            mainAnimator?.Shot(speed);
         }         
 
         internal void StartReload(bool roundInChamber)
         {
-
+            mainAnimator?.StartInserting(1f);
         }
 
         internal void StopReload()
         {
+            mainAnimator?.StopInserting(1f);
+        }
 
+        internal void Overheat()
+        {
+            mainAnimator?.Overheat(1.5f);
+        }
+
+        internal void Draw()
+        {
+            mainAnimator?.Draw();
+        }
+
+        internal void Hide()
+        {
+            mainAnimator?.Hide();
         }
     }
     public class WeaponModel : MonoBehaviour
@@ -59,14 +90,21 @@ namespace WeaponSystem
         public float StopReloadTime => stopReloadTime;
 
         [SerializeField] private WeaponAnimator animator;
-
+        [Header("Points")]
         [SerializeField] private Transform handPoint;
         [SerializeField] private Transform shootPoint;
         [SerializeField] private Transform muzzlePoint;
         [SerializeField] private Transform shellPoint;
         [SerializeField] private Transform magazinePoint;
 
+        [Header("Magazine")]
         [SerializeField] private GameObject magazinePrefab;
+        [SerializeField] private bool magazineDrop;
+        [SerializeField] private int maxCountMagazineDrop = 3;
+        [Header("Shell")]
+        [SerializeField] private ParticleSystem shellPrefab;
+
+        [SerializeField] private Rigidbody2D character;
 
         private float reloadTime;
         private float insertTime;
@@ -75,6 +113,9 @@ namespace WeaponSystem
         private float stopReloadTime;
         private Weapon weapon;
         private SpriteRenderer render;
+        private ParticleSystem shell;
+        private int lastMagazine;
+        private List<GameObject> magazineList = new List<GameObject>();
 
         public void Init(Weapon weapon)
         {
@@ -96,7 +137,7 @@ namespace WeaponSystem
             StartReloadDuration = new WaitForSeconds(startReloadTime);
             InsertInChamberDuration = new WaitForSeconds(insertChamberTime);
             StopReloadDuration = new WaitForSeconds(stopReloadTime);
-            CompleteReloadDropDuration = new WaitForSeconds(reloadTime * 0.5f);
+            CompleteReloadDropDuration = new WaitForSeconds(reloadTime * 0.25f);
             ReloadDropDuration = new WaitForSeconds((reloadTime * 0.75f) * 0.5f);
         }
 
@@ -110,7 +151,46 @@ namespace WeaponSystem
             GameObject muzzle = Instantiate(weapon.Data.Ammo.PrefabMuzzle, muzzlePoint);
             Destroy(muzzle, 1f);
         }
+        internal void CreateShellEjection(Transform parent)
+        {
+            if(shell) RemoveShellEjection();
+            if(shellPrefab)
+                shell = Instantiate(shellPrefab, shellPoint.transform.position, shellPrefab.transform.rotation, parent);
+        }
+        internal void CreateShell()
+        {
+            for(int i = 0; i< weapon.Data.Consume; i++)
+                shell?.Play();
+        }
+        internal void RemoveShellEjection()
+        {
+            Destroy(shell.gameObject);
+            shell = null;
+        }
+        public void DropMagazine()
+        {
+            if (!magazineDrop|| !magazinePrefab || !magazinePoint) return;
 
+            GameObject magazine = null;
+            if (magazineList.Count == maxCountMagazineDrop)
+            {
+                int magazineIndex = lastMagazine++ % maxCountMagazineDrop;
+                magazineList[magazineIndex].transform.SetPositionAndRotation(magazinePoint.transform.position, magazinePoint.transform.rotation);
+                magazine = magazineList[magazineIndex];
+            }
+            else
+            {
+                magazine = Instantiate(magazinePrefab, magazinePoint.transform.position, magazinePoint.transform.rotation);
+                magazineList.Add(magazine);
+            }
+            var rigidbody2D = magazine.GetComponent<Rigidbody2D>();
+            float ejectionTorque = 1 * UnityEngine.Random.value;
+            float ejectionForce = 1.5f;
+            Vector2 force = magazinePoint.up.normalized * ejectionForce;//(magazine.transform.right - magazine.transform.up) * ejectionForce;
+            Debug.DrawLine(force, force * ejectionForce);
+            rigidbody2D.AddForce(force, ForceMode2D.Impulse);
+            rigidbody2D.AddTorque(ejectionTorque, ForceMode2D.Impulse);
+        }
         internal void CreateTracer(Vector2 direction, float duration)
         {
             if (!weapon.Data.Ammo.PrefabTracer)

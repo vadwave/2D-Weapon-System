@@ -35,7 +35,7 @@ namespace WeaponSystem
                 Shot();
             }
             SetAttackTime();
-            Model.Animator.Shot(EmptyMagazine);
+            Model.Animator.Shot(EmptyCapacity);
             Muzzle();
             DropShell();
             Recoil();
@@ -53,7 +53,7 @@ namespace WeaponSystem
             int bullets = BulletsPerBurst;
             for (int x = 0; x < bullets; x++)
             {
-                if (EmptyMagazine || isOverheating) break;
+                if (EmptyCapacity || isOverheating) break;
                 CurrentRounds -= data.Consume;
                 CurrentHeatLevel += data.Consume;
                 if(data.Origin.ChargeType == ChargeType.Capacity) CurrentChargeLevel -= data.Consume;
@@ -63,7 +63,7 @@ namespace WeaponSystem
                     Shot();
                 }
                 SetAttackTime();
-                Model.Animator.Shot(EmptyMagazine);
+                Model.Animator.Shot(EmptyCapacity);
                 Muzzle();
                 DropShell();
                 Recoil();
@@ -120,7 +120,7 @@ namespace WeaponSystem
         }
         protected void DropShell()
         {
-
+            Model.CreateShell();
         }
         private void Recoil()
         {

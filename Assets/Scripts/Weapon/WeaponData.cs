@@ -30,10 +30,10 @@ namespace WeaponSystem
     public enum FireMode
     {
         None,
+        Single,
         SemiAuto,
         FullAuto,
         Burst,
-        Charge,
     }
     [Serializable]
     public enum ReloadMode
@@ -90,7 +90,8 @@ namespace WeaponSystem
         public float DecreaseRateByWalking => origin.InaccuracyInMoving;
 
         public float ReloadTime => origin.ReloadTime;
-        public float Capacity => origin.Capacity;
+        public float Capacity => origin.Capacity + origin.ChamberCapacity;
+        public float MagazineCapacity => origin.Capacity;
         public float Consume => origin.Consume;
 
         public float CapacityHeat => origin.CapacityHeat;
@@ -126,14 +127,17 @@ namespace WeaponSystem
             return isShooting ? DecreaseRateByShooting : DecreaseRateByWalking;
         }
 
-        internal float GetNextAttack(FireMode fireMode)
+        internal float GetNextAttack(FireMode fireMode, bool isCharge, int chargeCapacity)
         {
-            switch (fireMode)
+            if(isCharge) return Time.time + FireRate * (chargeCapacity + 1);
+            else
             {
-                case FireMode.None: return Time.time + 0.25f;
-                case FireMode.Burst: return Time.time + FireRate * (BulletsPerBurst + 1);
-                case FireMode.Charge: return Time.time + FireRate * (BulletsPerBurst + 1);
-                default: return Time.time + FireRate;
+                switch (fireMode)
+                {
+                    case FireMode.None: return Time.time + 0.25f;
+                    case FireMode.Burst: return Time.time + FireRate * (BulletsPerBurst + 1);
+                    default: return Time.time + FireRate;
+                }
             }
         }
         public float CalculateImpactForce(float distance)
@@ -188,6 +192,7 @@ namespace WeaponSystem
         [SerializeField] private CapacityType capacityType;
         [SerializeField] private float capacity;
         [SerializeField] private float consume;
+        [SerializeField] private float chamberCapacity;
         [Header("Reload")]
         [SerializeField] private ReloadMode reloadMode;
         [SerializeField] private float reloadTime;
@@ -199,7 +204,6 @@ namespace WeaponSystem
         [SerializeField] private ChargeType chargeType;
         [SerializeField] private float chargeCapacity;
         [SerializeField] private float chargeTime;
-        [SerializeField] private bool shotAfterFullCharge;
         [Header("Visual")]
         [SerializeField] private WeaponModel model;
 
@@ -222,6 +226,7 @@ namespace WeaponSystem
         public AmmoData Ammo { get => ammo; set => ammo = value; }
         public CapacityType CapacityType { get => capacityType; set => capacityType = value; }
         public float Capacity { get => capacity; set => capacity = value; }
+        public float ChamberCapacity { get => chamberCapacity; set => chamberCapacity = value; }
         public float Consume { get => consume; set => consume = value; }
         public ReloadMode ReloadMode { get => reloadMode; set => reloadMode = value; }
         public float ReloadTime { get => reloadTime; set => reloadTime = value; }
@@ -230,7 +235,6 @@ namespace WeaponSystem
         public float CapacityHeat { get => capacityHeat; set => capacityHeat = value; }
         public ChargeType ChargeType { get => chargeType; set => chargeType = value; }
         public float ChargeTime { get => chargeTime; set => chargeTime = value; }
-        public bool ShotAfterFullCharge { get => shotAfterFullCharge; set => shotAfterFullCharge = value; }
         public float ChargeCapacity { get => chargeCapacity; set => chargeCapacity = value; }
         public WeaponModel Model { get => model; set => model = value; }
     }

@@ -20,8 +20,9 @@ namespace WeaponSystem
         public bool IsIdling { get; private set; }
         public bool IsAiming { get; private set; }
         public bool IsActive { get; private set; }
-        public bool EmptyMagazine => CurrentRounds == 0;
-        public bool FullMagazine => CurrentRounds == data.Capacity;
+        public bool EmptyCapacity => CurrentRounds == 0;
+        public bool FullCapacity => CurrentRounds == data.Capacity;
+        public bool EmptyMagazine => CurrentRounds <= data.Origin.ChamberCapacity;
         public bool IsCanReloadMagazine => EmptyMagazine && !InventoryEmpty;
         public bool InventoryEmpty => InventoryIsEmpty(data.Ammo);
         public bool IsCanAttack => !IsReloading && !Attacking && CurrentRounds >= 0;
@@ -43,7 +44,7 @@ namespace WeaponSystem
                 }
             }
         }
-        public bool IsCharged => data.ChargeTime > 0 && data.Origin.ChargeType != ChargeType.None && data.Origin.FireMode == FireMode.Charge;
+        public bool IsCharged => data.ChargeTime > 0 && data.Origin.ChargeType != ChargeType.None;
         public bool IsHeated => data.CapacityHeat > 0;
         public bool IsChargingBurst => data.BulletsPerBurst > 1;
         public float CurrentRounds { get => currentRounds;
@@ -52,7 +53,7 @@ namespace WeaponSystem
                 if (currentRounds != value)
                 {
                     currentRounds = value;
-                    OnChangedCapacity?.Invoke(currentRounds, data.Capacity, data.Origin.CapacityType);
+                    OnChangedCapacity?.Invoke(currentRounds, data.MagazineCapacity, data.Origin.CapacityType);
                 }
             }
         }
@@ -90,7 +91,6 @@ namespace WeaponSystem
             }
         }
 
-
         [SerializeField] protected WeaponData weaponData;
 
         protected LayerMask collidedMask;
@@ -112,10 +112,6 @@ namespace WeaponSystem
         protected bool isOverheating = false;
         protected bool isCharging = false;
 
-        protected void Awake()
-        {
-            Initialize(weaponData);
-        }
         protected void FixedUpdate()
         {
             Heating(Time.fixedDeltaTime);
@@ -133,12 +129,12 @@ namespace WeaponSystem
             if(model == null) CreateModel();
             this.model.Init(this);
             this.currentFireMode = this.data.Origin.FireMode;
-            this.CurrentRounds = this.data.Capacity;
+            this.CurrentRounds = this.data.MagazineCapacity;
         }
         public void Initialize(LayerMask mask)
         {
             collidedMask = mask;
-            IsActive = true;
+            Initialize(weaponData);
         }
         public void CreateModel()
         {
@@ -147,27 +143,36 @@ namespace WeaponSystem
 
         public void Trigger(InputType input)
         {
-            bool canAttack = IsCanAttack && !isCharging;
+            if (!IsActive) return;
+            bool canAttack = IsCanAttack;
             if (canAttack)
             {
                 if (IsCanAutoReloadTrigger)
                 {
-                    if ((input == InputType.Down && (Origin.FireMode == FireMode.SemiAuto || Origin.FireMode == FireMode.Burst)) ||
+                    if ((input == InputType.Down && (Origin.FireMode == FireMode.Single || Origin.FireMode == FireMode.SemiAuto || Origin.FireMode == FireMode.Burst)) ||
                         (input == InputType.Hold && Origin.FireMode == FireMode.FullAuto) ||
-                        (input == InputType.Up && Origin.FireMode == FireMode.Charge))
+                        (input == InputType.Up && Origin.ChargeType != ChargeType.None))
                         Reload();
                 }
-                else if (EmptyMagazine)
+                else if (EmptyCapacity)
                 {
-                    if ((input == InputType.Down && (Origin.FireMode == FireMode.SemiAuto || Origin.FireMode == FireMode.Burst || Origin.FireMode == FireMode.FullAuto)) ||
-                        (input == InputType.Up && Origin.FireMode == FireMode.Charge))
-                        EmptyCapacity();
+                    if ((input == InputType.Down && (Origin.FireMode == FireMode.Single || Origin.FireMode == FireMode.SemiAuto || Origin.FireMode == FireMode.Burst || Origin.FireMode == FireMode.FullAuto)) ||
+                        (input == InputType.Up && Origin.ChargeType != ChargeType.None))
+                        EmptyAttack();
                 }
-                else
+                else if(Origin.ChargeType == ChargeType.None)
                 {
                     switch (Origin.FireMode)
                     {
                         case FireMode.None: break;
+                        case FireMode.Single:
+                            {
+                                if (input == InputType.Down)
+                                {
+                                    Attack();
+                                }
+                            }
+                            break;
                         case FireMode.SemiAuto:
                             {
                                 if (input == InputType.Down)
@@ -192,19 +197,18 @@ namespace WeaponSystem
                                 }
                             }
                             break;
-                        case FireMode.Charge:
-                            {
-                                if (input == InputType.Hold)
-                                {
-                                    Charge();
-                                }
-                                else if (input == InputType.Up)
-                                {
-                                    if (!isCharging) return;
-                                    Burst();
-                                }
-                            }
-                            break;
+                    }
+                }
+                else
+                {
+                    if (input == InputType.Hold)
+                    {
+                        Charge();
+                    }
+                    else if (input == InputType.Up)
+                    {
+                        if (!isCharging) return;
+                        Burst();
                     }
                 }
             }
@@ -239,7 +243,7 @@ namespace WeaponSystem
         }
         public void TriggerReload()
         {
-            bool canReload = IsCanReload && !Attacking && !FullMagazine && !InventoryEmpty;
+            bool canReload = IsCanReload && !Attacking && !FullCapacity && !InventoryEmpty && IsActive;
             if (canReload)
             {
                 Reload();
@@ -248,14 +252,14 @@ namespace WeaponSystem
         public virtual void Attack()
         {
             //GetDirection
-            nextAttackTime = data.GetNextAttack(currentFireMode);
+            nextAttackTime = data.GetNextAttack(currentFireMode, IsCharged, BulletsPerBurst);
             CurrentRounds -= data.Consume;
             CurrentHeatLevel += data.Consume;
         }
         public virtual void Burst()
         {
-            nextAttackTime = data.GetNextAttack(currentFireMode);
-            if (data.Origin.FireMode == FireMode.Charge) ReleaseCharge();
+            nextAttackTime = data.GetNextAttack(currentFireMode, IsCharged, BulletsPerBurst);
+            if (Origin.ChargeType != ChargeType.None) ReleaseCharge();
         }
 
         public virtual void Reload()
@@ -278,7 +282,7 @@ namespace WeaponSystem
         protected void ReloadMagazine()
         {
             StartCoroutine(IE_ReloadMagazines());
-            StartCoroutine(IE_DropMagazine());
+            if(EmptyMagazine) StartCoroutine(IE_DropMagazine());
         }
         private IEnumerator IE_ReloadMagazines()
         {
@@ -290,17 +294,16 @@ namespace WeaponSystem
 
             if (IsActive && IsReloading)
             {
-                if (!EmptyMagazine)
+                if (EmptyMagazine)
+                {
+                    CurrentRounds += RequestAmmo(data.Ammo, data.MagazineCapacity);
+                }
+                else
                 {
                     float amount = data.Capacity - CurrentRounds;
                     CurrentRounds += RequestAmmo(data.Ammo, amount);
                 }
-                else
-                {
-                    CurrentRounds += RequestAmmo(data.Ammo, data.Capacity);
-                }
             }
-
             IsReloading = false;
         }
         protected void ReloadBulletByBullet()
@@ -311,9 +314,9 @@ namespace WeaponSystem
         {
             IsReloading = true;
 
-            Model.Animator.StartReload(!EmptyMagazine);
+            Model.Animator.StartReload(!EmptyCapacity);
 
-            if (EmptyMagazine)
+            if (EmptyCapacity)
             {
                 yield return Model.InsertInChamberDuration;
                 CurrentRounds += RequestAmmo(data.Ammo, data.Consume);
@@ -324,7 +327,7 @@ namespace WeaponSystem
                 yield return Model.StartReloadDuration;
             }
 
-            while (IsActive && IsReloading && !FullMagazine && !InventoryEmpty)
+            while (IsActive && IsReloading && !FullCapacity && !InventoryEmpty)
             {
                 Model.Animator.InsertRound();
                 yield return Model.InsertDuration;
@@ -359,12 +362,12 @@ namespace WeaponSystem
         }
         public void DropMagazine()
         {
-
+            Model.DropMagazine();
         }
 
-        protected void EmptyCapacity()
+        protected void EmptyAttack()
         {
-            nextAttackTime = data.GetNextAttack(FireMode.None);
+            nextAttackTime = data.GetNextAttack(FireMode.None, IsCharged, BulletsPerBurst);
             Model.Animator.OutOfAmmo();
         }
         private bool InventoryIsEmpty(AmmoData ammo)
@@ -441,8 +444,23 @@ namespace WeaponSystem
         public void Switch() { }
 
 
-        public void Hide() { }
-        public void Draw() { }
+        public void Hide() 
+        {
+            IsActive = false;
+            Model.Animator.Hide();
+            ReleaseCharge();
+        }
+        public void Draw() 
+        {
+            Model.Animator.Initialize(data.Origin.FireMode);
+            StartCoroutine(IE_DrawWait());
+        }
+        IEnumerator IE_DrawWait()
+        {
+            Model.Animator.Draw();
+            yield return new WaitForSeconds(Model.Animator.DrawAnimationLength);
+            IsActive = true;
+        }
 
         public float CalculateDistanceDamage(float distance)
         {
@@ -487,9 +505,10 @@ namespace WeaponSystem
         }
         internal void Decal(Vector2 position, float waitTime)
         {
-            StartCoroutine(PaintDecal(position, waitTime));
+            if(this.gameObject.activeInHierarchy)
+                StartCoroutine(IE_PaintDecal(position, waitTime));
         }
-        IEnumerator PaintDecal(Vector2 position, float waitTime)
+        IEnumerator IE_PaintDecal(Vector2 position, float waitTime)
         {
             yield return new WaitForSeconds(waitTime);
             Decal(position);
