@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,11 +21,16 @@ namespace WeaponSystem
         [SerializeField] Text text;
         [SerializeField] Text textCharge;
         [SerializeField] Text textHeat;
+
+        [SerializeField] Transform leftHand;
+        [SerializeField] Transform rightHand;
+
+        private CapacityType typeCapacity;
         private bool isReloaded;
         private float currentCapacity;
         private float maxCapacity;
-        private CapacityType typeCapacity;
         private int currentIndex = 0;
+        Coroutine corSwitch;
 
         private void Awake()
         {
@@ -44,6 +50,7 @@ namespace WeaponSystem
         private void Update()
         {
             Rotate();
+            UpdateHandPoints();
             if (Input.GetMouseButtonDown(0))
             {
                 Trigger(InputType.Down);
@@ -65,15 +72,24 @@ namespace WeaponSystem
                 ChangeWeapon();
             }
         }
-        void ChangeWeapon()
+        IEnumerator SwitchWeapon()
         {
             weapons[currentIndex].Hide();
+            yield return new WaitForSeconds(0.3f);
             weapons[currentIndex].gameObject.SetActive(false);
             if (currentIndex == weapons.Length - 1) currentIndex = 0;
             else currentIndex++;
+            yield return new WaitForSeconds(0.1f);
             weapons[currentIndex].gameObject.SetActive(true);
             weapons[currentIndex].Draw();
+            yield return new WaitForSeconds(1f);
             ChangeCapacity(weapons[currentIndex].CurrentRounds, weapons[currentIndex].Data.MagazineCapacity, weapons[currentIndex].Data.Origin.CapacityType);
+            yield return new WaitForSeconds(0.1f);
+            corSwitch = null;
+        }
+        void ChangeWeapon()
+        {
+            if(corSwitch == null) corSwitch = StartCoroutine(SwitchWeapon());
         }
         void ChangeCapacity(float current, float max, CapacityType type)
         {
@@ -136,20 +152,37 @@ namespace WeaponSystem
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             foreach(Transform transform in arms)
             {
-                var weaponPos = weapons[0].Model.ShootPoint.transform.position - transform.right;
+                var weaponPos = weapons[currentIndex].Model.ShootPoint.transform.position - transform.right;
                 Vector2 bodyPoint = weaponPos;
                 Vector2 direction = mousePos - bodyPoint;
 
                 DebugCross(bodyPoint, Color.red);
-                Debug.DrawRay(bodyPoint, direction, Color.magenta);
+                Debug.DrawRay(bodyPoint, direction, Color.white);
 
                 float rotZ = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
                 var lookRotation = Quaternion.Euler(rotZ * Vector3.forward);
                 transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, 100f * Time.deltaTime);
             }
         }
+        void UpdateHandPoints()
+        {
+            var weapon = weapons[currentIndex];
+            if (weapon)
+            {
+                rightHand.position = weapon.Model.HandPoint.position;
+                rightHand.rotation = weapon.Model.HandPoint.rotation;
+                if (weapon.Model.HandHelpPoint)
+                {
+                    leftHand.position = weapon.Model.HandHelpPoint.position;
+                    leftHand.rotation = weapon.Model.HandHelpPoint.rotation;
+                }
+                    
+            }
+        }
+
         private void OnDrawGizmos()
         {
+            DebugUpdateHandPoints();
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             DebugCross(mousePos, Color.yellow);
             foreach (Transform transform in arms)
@@ -160,6 +193,26 @@ namespace WeaponSystem
                     Debug.DrawRay(transform.position, transform.right * weapon.Data.Range, Color.red);
                     Debug.DrawRay(weapon.Model.ShootPoint.position, weapon.Model.ShootPoint.right * weapon.Data.Range, Color.blue);
                 }
+            }
+        }
+        void DebugUpdateHandPoints()
+        {
+            Weapon weapon = null;
+            foreach (Weapon weaponTemp in weapons)
+            {
+                if (weaponTemp.enabled && weaponTemp.gameObject.activeInHierarchy)
+                    weapon = weaponTemp;
+            }
+            if (weapon)
+            {
+                rightHand.position = weapon.Model.HandPoint.position;
+                rightHand.rotation = weapon.Model.HandPoint.rotation;
+                if (weapon.Model.HandHelpPoint)
+                {
+                    leftHand.position = weapon.Model.HandHelpPoint.position;
+                    leftHand.rotation = weapon.Model.HandHelpPoint.rotation;
+                }
+
             }
         }
         public static void DebugCross(Vector2 point, Color color, float size = 0.25f)

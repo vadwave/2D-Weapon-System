@@ -14,14 +14,34 @@ namespace WeaponSystem
         {
             get { return 0.3f; }    
         }
+
+        internal void Awake()
+        {
+            animator.keepAnimatorControllerStateOnDisable = true;
+        }
         internal void Initialize(FireMode fireMode)
         {
-            mainAnimator?.Initialize(fireMode);
+            if (animator)
+            {
+                animator.SetBool("Is Manually-Operated", fireMode == FireMode.Single);
+            }
+            else if (mainAnimator)
+            {
+                mainAnimator.Initialize(fireMode);
+            }
         }
 
         internal void InsertRound()
         {
-            mainAnimator?.Insert(1f);
+            if (animator)
+            {
+                animator.SetFloat("Speed", 1f);
+                animator.CrossFadeInFixedTime("Insert", 0.1f);
+            }
+            else if (mainAnimator)
+            {
+                mainAnimator.Insert(1f);
+            }
         }
 
         internal void OutOfAmmo()
@@ -31,49 +51,121 @@ namespace WeaponSystem
 
         internal void Reload(bool roundInChamber)
         {
-            mainAnimator?.Reload(roundInChamber, 0.6f);
+            if (animator)
+            {
+                animator.SetFloat("Speed", 1f);
+                if (roundInChamber) animator.CrossFadeInFixedTime("Weapon Reload", 0.1f);
+                else animator.CrossFadeInFixedTime("Weapon Empty Reload", 0.1f);
+            }
+            else if (mainAnimator)
+            {
+                mainAnimator.Reload(roundInChamber, 0.6f);
+            }
         }
 
         internal void Shot(bool lastRound)
         {
             float speed = (lastRound) ? 0.5f : 1.0f;
-            if (mainAnimator == null)
+            if (animator)
             {
-                animator?.SetFloat("Speed", speed);
-                animator?.CrossFadeInFixedTime("Recoil", 0.1f);
+                animator.SetFloat("Speed", speed);
+                animator.CrossFadeInFixedTime("Weapon Shot", 0.1f);
             }
-            mainAnimator?.Shot(speed);
+            else if (mainAnimator)
+            {
+                mainAnimator.Shot(speed);
+            }
         }         
 
         internal void StartReload(bool roundInChamber)
         {
-            mainAnimator?.StartInserting(1f);
+            if (animator)
+            {
+                animator.SetFloat("Speed", 1f);
+                animator.CrossFadeInFixedTime("Start Insert", 0.1f);
+            }
+            else if (mainAnimator)
+            {
+                mainAnimator.StartInserting(1f);
+            }
         }
 
         internal void StopReload()
         {
-            mainAnimator?.StopInserting(1f);
+            if (animator)
+            {
+                animator.SetFloat("Speed", 1f);
+                animator.CrossFadeInFixedTime("Stop Insert", 0.1f);
+            }
+            else if (mainAnimator)
+            {
+                mainAnimator.StopInserting(1f);
+            }
         }
 
         internal void Overheat()
         {
-            mainAnimator?.Overheat(1.5f);
+            if (animator)
+            {
+                animator.SetFloat("Speed", 1.5f);
+                animator.CrossFadeInFixedTime("Weapon Overheat", 0.1f);
+            }
+            else if (mainAnimator)
+            {
+                mainAnimator.Overheat(1.5f);
+            }
         }
 
         internal void Draw()
         {
-            mainAnimator?.Draw();
+            if (animator)
+            {
+                animator.SetFloat("Speed", 1f);
+                animator.CrossFadeInFixedTime("Weapon Draw", 0.1f);
+            }
+            else if (mainAnimator)
+            {
+                mainAnimator.Draw();
+            }
         }
 
         internal void Hide()
         {
-            mainAnimator?.Hide();
+            if (animator)
+            {
+                animator.SetFloat("Speed", 1f);
+                animator.CrossFadeInFixedTime("Weapon Hide", 0.1f);
+            }
+            else if (mainAnimator)
+            {
+                mainAnimator.Hide();
+            }
+        }
+
+        internal void Enable()
+        {
+            if (animator)
+            {
+                animator.enabled = true;
+            }
+        }
+
+        internal void Disable()
+        {
+            if (animator)
+            {
+                animator.StopPlayback();
+                animator.StopPlayback();
+                animator.enabled = false;
+            }
+
         }
     }
     public class WeaponModel : MonoBehaviour
     {
         public WeaponAnimator Animator => animator;
         public Transform HandPoint { get => handPoint; private set => handPoint = value; }
+        public Transform HandHelpPoint { get => handHelpPoint; private set => handHelpPoint = value; }
         public Transform ShootPoint { get => shootPoint; private set => shootPoint = value; }
         public Transform MuzzlePoint { get => muzzlePoint; set => muzzlePoint = value; }
         public Transform ShellPoint { get => shellPoint; private set => shellPoint = value; }
@@ -92,6 +184,7 @@ namespace WeaponSystem
         [SerializeField] private WeaponAnimator animator;
         [Header("Points")]
         [SerializeField] private Transform handPoint;
+        [SerializeField] private Transform handHelpPoint;
         [SerializeField] private Transform shootPoint;
         [SerializeField] private Transform muzzlePoint;
         [SerializeField] private Transform shellPoint;
@@ -116,6 +209,19 @@ namespace WeaponSystem
         private ParticleSystem shell;
         private int lastMagazine;
         private List<GameObject> magazineList = new List<GameObject>();
+
+        private void Awake()
+        {
+            animator.Awake();
+        }
+        private void OnDisable()
+        {
+            animator.Disable();
+        }
+        private void OnEnable()
+        {
+            animator.Enable();
+        }
 
         public void Init(Weapon weapon)
         {

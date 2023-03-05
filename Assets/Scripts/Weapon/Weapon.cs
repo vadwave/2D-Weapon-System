@@ -95,7 +95,7 @@ namespace WeaponSystem
 
         protected LayerMask collidedMask;
         protected WeaponRealData data;
-        protected WeaponModel model;
+        [SerializeField] protected WeaponModel model;
         protected WeaponState state;
 
         protected FireMode currentFireMode;
