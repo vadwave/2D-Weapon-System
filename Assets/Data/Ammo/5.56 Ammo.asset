@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eedb1d6ffdafa2140afe6c277328a1ef, type: 3}
+  m_Name: 5.56 Ammo
+  m_EditorClassIdentifier: 
+  name: 5.56
+  desc: 
+  icon: {fileID: -1393528909, guid: be5eecb5252270746943628b7108ca65, type: 3}
+  speed: 0
+  speedFalloffCurve:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  mass: 0
+  radius: 0
+  radiusFalloffCurve:
+    serializedVersion: 2
+    m_Curve: []
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  damage: 15
+  damageMode: 2
+  damageFalloffCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.4
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.6
+      value: 0.5
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.5
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  impactForce: 5
+  projectile: {fileID: 0}
+  muzzle: {fileID: 245166186996776066, guid: 110d05d748b094a4cb355c58fbba504f, type: 3}
+  impact: {fileID: 3522330301302647452, guid: f6a098bbd866b9f4e9ae3a487313af0a, type: 3}
+  decal: {fileID: 0}
+  tracer: {fileID: 1796038895997006380, guid: 21c2b9644002eae4eb348a14c98e3d33, type: 3}
+  tracerSpeed: 10
+  tracerDuration: 1
