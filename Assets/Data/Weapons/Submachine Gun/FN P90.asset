@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 862d12e2420f8134981d55ab41a4459f, type: 3}
+  m_Name: FN P90
+  m_EditorClassIdentifier: 
+  name: FN P90
+  desc: 
+  icon: {fileID: -1567378050, guid: be5eecb5252270746943628b7108ca65, type: 3}
+  shotType: 2
+  fireMode: 3
+  bulletsPerShoot: 1
+  bulletsPerBurst: 1
+  fireRate: 900
+  range: 12
+  spread: 1
+  recoilForce: 2
+  accuracy: 0.85
+  inaccuracyInShooting: 0
+  inaccuracyInMoving: 0
+  hipAccuracy: 0
+  aimAccuracy: 0
+  ammo: {fileID: 11400000, guid: 72ee697f747494b4ab444d58a9c20b5a, type: 2}
+  capacityType: 0
+  capacity: 50
+  consume: 1
+  chamberCapacity: 0
+  reloadMode: 1
+  reloadTime: 3
+  autoReload: 0
+  capacityHeat: 0
+  overheatTime: 3
+  chargeType: 0
+  chargeCapacity: 0
+  chargeTime: 0
+  shotAfterFullCharge: 0
+  model: {fileID: 4800350673551002067, guid: 57fac4231c35e324f8f4730f5337c04e, type: 3}

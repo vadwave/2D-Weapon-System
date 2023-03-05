@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 862d12e2420f8134981d55ab41a4459f, type: 3}
+  m_Name: M4 Super 90
+  m_EditorClassIdentifier: 
+  name: Benelli M4 Super 90
+  desc: 
+  icon: {fileID: 662510307, guid: be5eecb5252270746943628b7108ca65, type: 3}
+  shotType: 2
+  fireMode: 2
+  bulletsPerShoot: 5
+  bulletsPerBurst: 2
+  fireRate: 180
+  range: 12
+  spread: 3
+  recoilForce: 2
+  accuracy: 0.5
+  inaccuracyInShooting: 0
+  inaccuracyInMoving: 0
+  hipAccuracy: 1
+  aimAccuracy: 1
+  ammo: {fileID: 11400000, guid: 594f11886c89eb649b82ef9f326d05cb, type: 2}
+  capacityType: 0
+  capacity: 6
+  consume: 1
+  chamberCapacity: 1
+  reloadMode: 2
+  reloadTime: 0.14
+  autoReload: 0
+  capacityHeat: 2
+  overheatTime: 1
+  chargeType: 3
+  chargeCapacity: 5
+  chargeTime: 1
+  shotAfterFullCharge: 0
+  model: {fileID: 4800350673551002067, guid: 2b60585d08431b3408c1dbfe4bc7330a, type: 3}
